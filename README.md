@@ -1,2 +1,24 @@
 # TCP-fromaliwechart
 整理阿里技术备忘
+问题描述
+
+场景：JAVA的client和server，使用socket通信。server使用NIO。
+
+1.间歇性得出现client向server建立连接三次握手已经完成，但server的selector没有响应到这连接。
+2.出问题的时间点，会同时有很多连接出现这个问题。
+3.selector没有销毁重建，一直用的都是一个。
+4.程序刚启动的时候必会出现一些，之后会间歇性出现。
+
+分析问题
+
+正常TCP建连接三次握手过程：
+
+
+
+第一步：client 发送 syn 到server 发起握手；
+第二步：server 收到 syn后回复syn+ack给client；
+第三步：client 收到syn+ack后，回复server一个ack表示收到了server的syn+ack（此时client的56911端口的连接已经是established）。
+
+
+
+从问题的描述来看，有点像TCP建连接的时候全连接队列（accept队列，后面具体讲）满了，尤其是症状2、4. 为了证明是这个原因，马上通过 netstat -s | egrep "listen" 去看队列的溢出统计数据：    
